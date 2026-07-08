@@ -1,0 +1,63 @@
+# =============================================================================
+# Environment config — PROD
+# Same shape as dev.yaml. Values differ; still no secrets (Key Vault only).
+# NOTE: prod is a future target. For the 30-day/$200 trial we operate in dev.
+# =============================================================================
+env: prod
+
+azure:
+  subscription_id: "d5f98fab-893f-45ce-9fdc-c3399ba9f46f"
+  location: "centralindia"
+  resource_group: "rg-ghanalytics-prod"
+  naming_prefix: "ghanalytics"
+
+storage:
+  account_name: "ghanalyticsprod"          # placeholder — Terraform outputs the real one
+  containers:
+    landing: "landing"
+    bronze: "bronze"
+    silver: "silver"
+    gold: "gold"
+    checkpoints: "checkpoints"
+    quarantine: "quarantine"
+
+catalog:
+  metastore_type: "unity"
+  catalog_name: "gh_analytics_prod"
+  schemas:
+    bronze: "bronze"
+    silver: "silver"
+    gold: "gold"
+    ops: "ops"
+
+databricks:
+  workspace_url: ""
+  secret_scope: "gh-analytics-kv"
+
+eventhub:
+  namespace: "ghanalytics-prod-ehns"
+  hub_name: "gh-events"
+  consumer_group: "streaming"
+
+keyvault:
+  name: "ghanalytics-prod-kv"
+  secrets:
+    github_pat: "github-pat"
+    databricks_pat: "databricks-pat"
+    eventhub_conn: "eventhub-connection-string"
+
+adf:
+  factory_name: "ghanalytics-prod-adf"
+  notification_email: "dbdaproject787@gmail.com"
+
+ingestion:
+  gharchive_base_url: "https://data.gharchive.org"
+  hour_offset: -2
+
+dq:
+  results_table: "ops.dq_results"
+  fail_pipeline_on_critical: true
+
+retention:
+  landing_days: 90
+  vacuum_retention_hours: 168

@@ -1,0 +1,93 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gh-analytics-platform"
+version = "0.1.0"
+description = "GitHub Ecosystem Analytics Platform — ADF-orchestrated medallion lakehouse on Azure Databricks + Delta Lake"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "GH Analytics Platform" }]
+
+# Runtime deps for the LOCAL/CI toolchain only (linting, testing, DQ, utils).
+# PySpark/Delta run on the Databricks cluster runtime — pinned here only so
+# unit tests can spin up a local SparkSession. See requirements.txt.
+dependencies = []
+
+[project.optional-dependencies]
+dev = []
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# --------------------------------------------------------------------------
+# Ruff — linting + import sorting (replaces flake8 + isort)
+# --------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+extend-exclude = ["src/notebooks"]  # Databricks notebooks use dbutils/spark globals
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line length handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]
+
+# --------------------------------------------------------------------------
+# Black — formatting
+# --------------------------------------------------------------------------
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = "src/notebooks"
+
+# --------------------------------------------------------------------------
+# mypy — static typing (utils/transformations only; notebooks excluded)
+# --------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundant_casts = true
+ignore_missing_imports = true
+files = ["src/transformations", "src/dq", "src/utils"]
+exclude = "src/notebooks"
+
+# --------------------------------------------------------------------------
+# pytest
+# --------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra -q --strict-markers"
+markers = [
+    "unit: fast, isolated unit tests (no Spark)",
+    "spark: requires a local SparkSession (slower)",
+    "integration: requires Azure/Databricks connectivity",
+]
+
+[tool.coverage.run]
+source = ["src/transformations", "src/dq", "src/utils"]
+omit = ["src/notebooks/*"]

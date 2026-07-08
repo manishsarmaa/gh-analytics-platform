@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# Runtime dependencies for LOCAL execution + CI (unit tests, DQ, producers).
+#
+# On Databricks these are provided by the cluster runtime (DBR 15.4 LTS =
+# Spark 3.5.0 / Delta 3.2.x). We pin the same versions here so local unit
+# tests exercise identical behavior. Do NOT install pyspark on the cluster.
+# ---------------------------------------------------------------------------
+
+# --- Spark + Delta (match DBR 15.4 LTS) ---
+pyspark==3.5.0
+delta-spark==3.2.0
+
+# --- Data quality ---
+great-expectations==0.18.19
+
+# --- Config / IO / HTTP ---
+pyyaml==6.0.2
+requests==2.32.3
+python-dateutil==2.9.0.post0
+
+# --- Azure SDKs (Event Hubs producer, Key Vault access from local/containers) ---
+azure-eventhub==5.12.1
+azure-identity==1.17.1
+azure-keyvault-secrets==4.8.0
+azure-storage-file-datalake==12.16.0

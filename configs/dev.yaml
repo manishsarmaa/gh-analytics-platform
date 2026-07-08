@@ -1,0 +1,68 @@
+# =============================================================================
+# Environment config — DEV
+# Consumed by notebooks (via src/utils/config.py) and referenced by Terraform
+# tfvars / ADF global parameters. No secrets here — those live in Key Vault.
+# =============================================================================
+env: dev
+
+azure:
+  subscription_id: "d5f98fab-893f-45ce-9fdc-c3399ba9f46f"
+  location: "centralindia"
+  resource_group: "rg-ghanalytics-dev"
+  naming_prefix: "ghanalytics"
+
+storage:
+  # Storage account name is globally unique, <=24 chars, lowercase alphanum.
+  # Finalized in Phase 1 (Terraform appends a short random suffix).
+  account_name: "ghanalyticsdev"           # placeholder — Terraform outputs the real one
+  containers:
+    landing: "landing"
+    bronze: "bronze"
+    silver: "silver"
+    gold: "gold"
+    checkpoints: "checkpoints"
+    quarantine: "quarantine"
+
+# abfss paths are built from account_name + container in src/utils/config.py
+
+catalog:
+  # Set after Phase 2 UC check. If UC unavailable, use hive_metastore.
+  metastore_type: "unity"                   # "unity" | "hive"
+  catalog_name: "gh_analytics_dev"
+  schemas:
+    bronze: "bronze"
+    silver: "silver"
+    gold: "gold"
+    ops: "ops"                              # dq_results, audit, lineage
+
+databricks:
+  workspace_url: ""                         # filled after Phase 1 provisioning
+  secret_scope: "gh-analytics-kv"           # KV-backed scope (Phase 2)
+
+eventhub:
+  namespace: "ghanalytics-dev-ehns"
+  hub_name: "gh-events"
+  consumer_group: "streaming"
+
+keyvault:
+  name: "ghanalytics-dev-kv"                # <=24 chars
+  secrets:
+    github_pat: "github-pat"
+    databricks_pat: "databricks-pat"
+    eventhub_conn: "eventhub-connection-string"
+
+adf:
+  factory_name: "ghanalytics-dev-adf"
+  notification_email: "dbdaproject787@gmail.com"
+
+ingestion:
+  gharchive_base_url: "https://data.gharchive.org"
+  hour_offset: -2                           # process 2h ago (GH Archive publish lag)
+
+dq:
+  results_table: "ops.dq_results"
+  fail_pipeline_on_critical: true
+
+retention:
+  landing_days: 90
+  vacuum_retention_hours: 168               # 7 days
