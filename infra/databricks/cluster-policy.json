@@ -1,0 +1,54 @@
+{
+  "spark_version": {
+    "type": "regex",
+    "pattern": "15\\.4\\.x-scala.*",
+    "defaultValue": "15.4.x-scala2.12"
+  },
+  "node_type_id": {
+    "type": "allowlist",
+    "values": ["Standard_DS3_v2", "Standard_DS4_v2"],
+    "defaultValue": "Standard_DS3_v2"
+  },
+  "num_workers": {
+    "type": "fixed",
+    "value": 0
+  },
+  "spark_conf.spark.databricks.cluster.profile": {
+    "type": "fixed",
+    "value": "singleNode",
+    "hidden": true
+  },
+  "spark_conf.spark.master": {
+    "type": "fixed",
+    "value": "local[*]",
+    "hidden": true
+  },
+  "autotermination_minutes": {
+    "type": "range",
+    "minValue": 10,
+    "maxValue": 30,
+    "defaultValue": 20
+  },
+  "azure_attributes.availability": {
+    "type": "fixed",
+    "value": "SPOT_WITH_FALLBACK_AZURE"
+  },
+  "azure_attributes.spot_bid_max_price": {
+    "type": "fixed",
+    "value": -1
+  },
+  "data_security_mode": {
+    "type": "allowlist",
+    "values": ["SINGLE_USER", "USER_ISOLATION"],
+    "defaultValue": "SINGLE_USER"
+  },
+  "custom_tags.project": {
+    "type": "fixed",
+    "value": "gh-analytics-platform"
+  },
+  "custom_tags.ResourceClass": {
+    "type": "fixed",
+    "value": "SingleNode",
+    "hidden": true
+  }
+}

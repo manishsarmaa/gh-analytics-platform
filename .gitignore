@@ -80,3 +80,5 @@ derby.log
 # ---- Logs ----
 *.log
 logs/
+
+.databricks

@@ -1,0 +1,56 @@
+# =============================================================================
+# Databricks Asset Bundle — GH Analytics Platform
+#
+# Bundle root is the repo root so notebooks (src/notebooks) can import the
+# shared modules (src/transformations, src/dq, src/utils) that get synced
+# alongside them. Deploy with:
+#
+#   export DATABRICKS_HOST=... DATABRICKS_TOKEN=$(az keyvault secret show ...)
+#   databricks bundle validate -t dev
+#   databricks bundle deploy   -t dev
+#
+# Jobs (streaming, optimize) are added in later phases as their notebooks land.
+# =============================================================================
+bundle:
+  name: gh-analytics-platform
+
+# Only sync what the workspace needs (keeps the deployed bundle lean).
+sync:
+  paths:
+    - ./src
+    - ./configs
+
+variables:
+  catalog:
+    description: Unity Catalog for this environment.
+    default: gh_analytics_dev
+  cluster_policy_id:
+    description: Policy that enforces single-node/spot/auto-terminate cost controls.
+    default: "00195EEF89A45D23"
+  notification_email:
+    description: Alert target for job failures.
+    default: dbdaproject787@gmail.com
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-7405608693609813.13.azuredatabricks.net
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: gh_analytics_dev
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-7405608693609813.13.azuredatabricks.net
+      root_path: /Workspace/gh-analytics/${bundle.name}/${bundle.target}
+    variables:
+      catalog: gh_analytics_prod
+      # NOTE: prod points at the same workspace for the trial; split later.
+
+# resources:
+#   jobs:
+#     streaming_ingestion:   # Phase 10 — continuous Structured Streaming job
+#     daily_optimization:    # Phase 8  — OPTIMIZE + VACUUM
