@@ -1,0 +1,11 @@
+{
+  "name": "ADLS_Landing_LS",
+  "properties": {
+    "description": "ADLS Gen2 (landing). Auth via the ADF system-assigned managed identity (granted Storage Blob Data Contributor).",
+    "annotations": [],
+    "type": "AzureBlobFS",
+    "typeProperties": {
+      "url": "https://ghanalyticsdeva5k8k.dfs.core.windows.net"
+    }
+  }
+}

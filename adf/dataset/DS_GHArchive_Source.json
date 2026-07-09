@@ -1,0 +1,26 @@
+{
+  "name": "DS_GHArchive_Source",
+  "properties": {
+    "description": "GH Archive hourly file as raw bytes. `file_name` e.g. 2024-01-15-0.json.gz (hour NOT zero-padded).",
+    "linkedServiceName": {
+      "referenceName": "HTTP_GHArchive_LS",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "file_name": {
+        "type": "string"
+      }
+    },
+    "annotations": [],
+    "type": "Binary",
+    "typeProperties": {
+      "location": {
+        "type": "HttpServerLocation",
+        "relativeUrl": {
+          "value": "@dataset().file_name",
+          "type": "Expression"
+        }
+      }
+    }
+  }
+}
