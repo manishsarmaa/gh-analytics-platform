@@ -5,10 +5,10 @@ generation, ADF Studio authorization) are called out explicitly.
 
 | # | Phase | Status |
 |---|---|---|
-| 0 | Project bootstrap — repo scaffold, tooling, CI-ready | ✅ In progress |
-| 1 | Azure infrastructure (Terraform): RG, ADLS Gen2, Event Hubs, Key Vault, ADF, **Databricks workspace**, RBAC | ⬜ |
-| 2 | Databricks setup — Asset Bundle, KV-backed secret scope, cluster policies, Unity Catalog check | ⬜ |
-| 3 | Databricks notebooks — bronze / silver / gold / DQ + unit tests | ⬜ |
+| 0 | Project bootstrap — repo scaffold, tooling, CI-ready | ✅ Done |
+| 1 | Azure infrastructure (Terraform): RG, ADLS Gen2, Event Hubs, Key Vault, ADF, **Databricks workspace**, RBAC | ✅ Done (applied to dev) |
+| 2 | Databricks setup — Asset Bundle, cluster policy, Unity Catalog | ✅ Done (secret scope = manual UI step) |
+| 3 | Databricks notebooks — bronze / silver / gold / DQ + unit tests | ✅ Done (39 tests green; first live run in Phase 5) |
 | 4 | ADF linked services & datasets (JSON) + Studio authorization | ⬜ |
 | 5 | ADF main hourly pipeline — Copy + notebook activities, end-to-end test | ⬜ |
 | 6 | ADF backfill pipeline — ForEach + parallelism | ⬜ |
