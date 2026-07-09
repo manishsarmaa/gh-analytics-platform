@@ -173,7 +173,10 @@
               "dependsOn": [{ "activity": "Update lifecycle", "dependencyConditions": ["Succeeded"] }],
               "typeProperties": {
                 "variableName": "v_result_state",
-                "value": { "value": "@string(coalesce(activity('Get run status').output.state.result_state, ''))", "type": "Expression" }
+                "value": {
+                  "value": "@if(contains(activity('Get run status').output.state, 'result_state'), string(activity('Get run status').output.state.result_state), '')",
+                  "type": "Expression"
+                }
               }
             }
           ]
