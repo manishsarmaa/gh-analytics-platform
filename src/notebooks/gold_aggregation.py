@@ -52,7 +52,6 @@ TABLES = {
 events = spark.read.table(silver_table)
 if execution_date:
     events = events.filter(F.col("event_date") == F.to_date(F.lit(execution_date)))
-events = events.cache()
 log.info("silver_read", rows=events.count(), partition=execution_date or "ALL")
 
 
@@ -81,6 +80,5 @@ for name, fn in TABLES.items():
     log.info("gold_written", table=name, rows=rows_written, table_total=total)
 
 # COMMAND ----------
-events.unpersist()
 log.info("done", **{"execution_date": execution_date, "tables": list(TABLES)})
 dbutils.notebook.exit(json.dumps(metrics))

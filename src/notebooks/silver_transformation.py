@@ -45,7 +45,7 @@ bronze = spark.read.table(bronze_table)
 if execution_date:
     bronze = bronze.filter(F.col("event_date") == F.to_date(F.lit(execution_date)))
 
-silver = to_silver_events(bronze, source="batch").cache()
+silver = to_silver_events(bronze, source="batch")
 row_count = silver.count()
 log.info("transformed", rows=row_count, source_partition=execution_date or "ALL")
 
@@ -68,7 +68,6 @@ else:
     log.info("silver_merged", source_rows=row_count, table=silver_table)
 
 # COMMAND ----------
-silver.unpersist()
 metrics = {"rows": row_count, "silver_table": silver_table, "execution_date": execution_date}
 log.info("done", **metrics)
 dbutils.notebook.exit(json.dumps(metrics))

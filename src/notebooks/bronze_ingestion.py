@@ -60,7 +60,6 @@ raw = spark.read.text(landing_path)  # Spark auto-decompresses .json.gz
 bronze = to_bronze(raw, source_file=source_file)
 valid, quarantine = split_valid_quarantine(bronze)
 
-valid = valid.cache()
 valid_count = valid.count()
 quarantine_count = quarantine.count()
 log.info("transformed", valid=valid_count, quarantined=quarantine_count)
@@ -100,7 +99,6 @@ else:
     log.info("bronze_merged", source_rows=valid_count, table=bronze_table)
 
 # COMMAND ----------
-valid.unpersist()
 metrics = {
     "valid": valid_count,
     "quarantined": quarantine_count,

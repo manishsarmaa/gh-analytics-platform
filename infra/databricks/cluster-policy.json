@@ -42,10 +42,6 @@
     "values": ["SINGLE_USER", "USER_ISOLATION"],
     "defaultValue": "SINGLE_USER"
   },
-  "custom_tags.project": {
-    "type": "fixed",
-    "value": "gh-analytics-platform"
-  },
   "custom_tags.ResourceClass": {
     "type": "fixed",
     "value": "SingleNode",
