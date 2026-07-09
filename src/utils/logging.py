@@ -20,9 +20,7 @@ from typing import Any
 
 
 class _JsonFormatter(logging.Formatter):
-    """Render LogRecords as single-line JSON with merged ``extra`` context."""
-
-    _RESERVED = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__)
+    """Render LogRecords as single-line JSON, merging nested context fields."""
 
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
@@ -31,25 +29,28 @@ class _JsonFormatter(logging.Formatter):
             "logger": record.name,
             "event": record.getMessage(),
         }
-        # Fold any adapter/extra kwargs into the top-level object.
-        for key, value in record.__dict__.items():
-            if key not in self._RESERVED and not key.startswith("_"):
-                payload[key] = value
+        # Context is stashed under a single, collision-safe attribute so keys
+        # like `name`/`module` (reserved on LogRecord) can be logged freely.
+        ctx = getattr(record, "context_fields", None)
+        if isinstance(ctx, dict):
+            payload.update(ctx)
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
         return json.dumps(payload, default=str)
 
 
 class _ContextAdapter(logging.LoggerAdapter):
-    """Attach persistent context and pass call-site kwargs through as ``extra``."""
+    """Attach persistent context and pass call-site kwargs as nested context."""
 
     # Standard logging kwargs that must be forwarded as-is, not treated as context.
     _PASSTHROUGH = ("exc_info", "stack_info", "stacklevel")
 
     def process(self, msg: str, kwargs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-        # Everything the caller passed that isn't a standard logging kwarg is context.
+        # Everything the caller passed that isn't a standard logging kwarg is
+        # context. Nest it under a single `extra` key so it never collides with
+        # reserved LogRecord attributes (name, module, msg, ...).
         call_extra = {k: kwargs.pop(k) for k in list(kwargs) if k not in self._PASSTHROUGH}
-        kwargs["extra"] = {**(self.extra or {}), **call_extra}
+        kwargs["extra"] = {"context_fields": {**(self.extra or {}), **call_extra}}
         return msg, kwargs
 
 

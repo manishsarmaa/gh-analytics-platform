@@ -36,6 +36,19 @@ def test_logger_does_not_duplicate_handlers() -> None:
 
 
 @pytest.mark.unit
+def test_reserved_logrecord_keys_do_not_crash(capsys: pytest.CaptureFixture[str]) -> None:
+    # `name`/`module` collide with LogRecord attributes; the logger must accept
+    # them as context, not raise KeyError (regression from dq_checks).
+    log = get_logger("test_reserved")
+    log.info("check", name="unique:event_id", module="dq", passed=True)
+    record = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert record["event"] == "check"
+    assert record["name"] == "unique:event_id"
+    assert record["module"] == "dq"
+    assert record["passed"] is True
+
+
+@pytest.mark.unit
 def test_exception_is_captured(capsys: pytest.CaptureFixture[str]) -> None:
     log = get_logger("test_exc")
     try:
