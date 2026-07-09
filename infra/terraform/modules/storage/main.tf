@@ -11,7 +11,9 @@ resource "azurerm_storage_account" "this" {
   is_hns_enabled           = true  # hierarchical namespace = ADLS Gen2
   min_tls_version          = "TLS1_2"
 
-  https_traffic_only_enabled = true
+  # NOTE: azurerm 3.x uses this attribute name (emits a harmless deprecation
+  # warning). Rename to `https_traffic_only_enabled` when upgrading to v4.0.
+  enable_https_traffic_only = true
 
   blob_properties {
     delete_retention_policy {

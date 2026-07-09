@@ -13,8 +13,8 @@ azure:
 
 storage:
   # Storage account name is globally unique, <=24 chars, lowercase alphanum.
-  # Finalized in Phase 1 (Terraform appends a short random suffix).
-  account_name: "ghanalyticsdev"           # placeholder — Terraform outputs the real one
+  # Provisioned in Phase 1 (Terraform random suffix = a5k8k).
+  account_name: "ghanalyticsdeva5k8k"
   containers:
     landing: "landing"
     bronze: "bronze"
@@ -36,23 +36,25 @@ catalog:
     ops: "ops"                              # dq_results, audit, lineage
 
 databricks:
-  workspace_url: ""                         # filled after Phase 1 provisioning
+  workspace_url: "https://adb-7405608693609813.13.azuredatabricks.net"
   secret_scope: "gh-analytics-kv"           # KV-backed scope (Phase 2)
+  access_connector_name: "ghan-dev-dbw-ac"  # UC storage credential (Phase 2)
 
 eventhub:
-  namespace: "ghanalytics-dev-ehns"
+  namespace: "ghan-dev-ehns-a5k8k"
   hub_name: "gh-events"
-  consumer_group: "streaming"
+  consumer_group: "$Default"                # Basic SKU only supports $Default
 
 keyvault:
-  name: "ghanalytics-dev-kv"                # <=24 chars
+  name: "ghan-dev-kv-a5k8k"
+  uri: "https://ghan-dev-kv-a5k8k.vault.azure.net/"
   secrets:
     github_pat: "github-pat"
     databricks_pat: "databricks-pat"
     eventhub_conn: "eventhub-connection-string"
 
 adf:
-  factory_name: "ghanalytics-dev-adf"
+  factory_name: "ghan-dev-adf-a5k8k"
   notification_email: "dbdaproject787@gmail.com"
 
 ingestion:
