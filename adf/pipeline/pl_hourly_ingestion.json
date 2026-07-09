@@ -1,0 +1,222 @@
+{
+  "name": "pl_hourly_ingestion",
+  "properties": {
+    "description": "Hourly: copy one GH Archive hour to landing, then trigger the serverless medallion job (MSI) and wait for it.",
+    "activities": [
+      {
+        "name": "Set target time",
+        "type": "SetVariable",
+        "dependsOn": [],
+        "typeProperties": {
+          "variableName": "v_target",
+          "value": {
+            "value": "@if(empty(pipeline().parameters.run_time), formatDateTime(addHours(utcnow(), pipeline().parameters.hour_offset), 'yyyy-MM-ddTHH:00:00Z'), pipeline().parameters.run_time)",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Set execution date",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Set target time", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "v_execution_date",
+          "value": {
+            "value": "@formatDateTime(variables('v_target'), 'yyyy-MM-dd')",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Set file name",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Set execution date", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "v_file_name",
+          "value": {
+            "value": "@concat(formatDateTime(variables('v_target'), 'yyyy-MM-dd'), '-', string(int(formatDateTime(variables('v_target'), 'HH'))), '.json.gz')",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Set folder",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Set file name", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "v_folder",
+          "value": {
+            "value": "@concat('gharchive/year=', formatDateTime(variables('v_target'), 'yyyy'), '/month=', formatDateTime(variables('v_target'), 'MM'), '/day=', formatDateTime(variables('v_target'), 'dd'), '/hour=', formatDateTime(variables('v_target'), 'HH'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Set landing path",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Set folder", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "v_landing_path",
+          "value": {
+            "value": "@concat('abfss://landing@ghanalyticsdeva5k8k.dfs.core.windows.net/', variables('v_folder'), '/')",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Copy GHArchive to landing",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "Set landing path", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.01:00:00", "retry": 2, "retryIntervalInSeconds": 30 },
+        "typeProperties": {
+          "source": {
+            "type": "BinarySource",
+            "storeSettings": { "type": "HttpReadSettings", "requestMethod": "GET" }
+          },
+          "sink": {
+            "type": "BinarySink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "DS_GHArchive_Source",
+            "type": "DatasetReference",
+            "parameters": { "file_name": { "value": "@variables('v_file_name')", "type": "Expression" } }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "DS_Landing_Sink",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder_path": { "value": "@variables('v_folder')", "type": "Expression" },
+              "file_name": { "value": "@variables('v_file_name')", "type": "Expression" }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Trigger medallion job",
+        "type": "WebActivity",
+        "dependsOn": [{ "activity": "Copy GHArchive to landing", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:10:00", "retry": 1 },
+        "typeProperties": {
+          "url": "https://adb-7405608693609813.13.azuredatabricks.net/api/2.1/jobs/run-now",
+          "method": "POST",
+          "headers": { "Content-Type": "application/json" },
+          "authentication": { "type": "MSI", "resource": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d" },
+          "body": {
+            "value": "@json(concat('{\"job_id\":304513597804481,\"job_parameters\":{\"env\":\"', pipeline().parameters.env, '\",\"execution_date\":\"', variables('v_execution_date'), '\",\"landing_path\":\"', variables('v_landing_path'), '\",\"source_file\":\"', variables('v_file_name'), '\"}}'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Set run id",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Trigger medallion job", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "v_run_id",
+          "value": { "value": "@string(activity('Trigger medallion job').output.run_id)", "type": "Expression" }
+        }
+      },
+      {
+        "name": "Init lifecycle",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Set run id", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": { "variableName": "v_life_cycle", "value": "PENDING" }
+      },
+      {
+        "name": "Poll medallion run",
+        "type": "Until",
+        "dependsOn": [{ "activity": "Init lifecycle", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "expression": {
+            "value": "@or(equals(variables('v_life_cycle'), 'TERMINATED'), or(equals(variables('v_life_cycle'), 'INTERNAL_ERROR'), equals(variables('v_life_cycle'), 'SKIPPED')))",
+            "type": "Expression"
+          },
+          "timeout": "0.01:30:00",
+          "activities": [
+            {
+              "name": "Wait 30s",
+              "type": "Wait",
+              "dependsOn": [],
+              "typeProperties": { "waitTimeInSeconds": 30 }
+            },
+            {
+              "name": "Get run status",
+              "type": "WebActivity",
+              "dependsOn": [{ "activity": "Wait 30s", "dependencyConditions": ["Succeeded"] }],
+              "policy": { "timeout": "0.00:05:00", "retry": 2 },
+              "typeProperties": {
+                "url": {
+                  "value": "@concat('https://adb-7405608693609813.13.azuredatabricks.net/api/2.1/jobs/runs/get?run_id=', variables('v_run_id'))",
+                  "type": "Expression"
+                },
+                "method": "GET",
+                "authentication": { "type": "MSI", "resource": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d" }
+              }
+            },
+            {
+              "name": "Update lifecycle",
+              "type": "SetVariable",
+              "dependsOn": [{ "activity": "Get run status", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "variableName": "v_life_cycle",
+                "value": { "value": "@string(activity('Get run status').output.state.life_cycle_state)", "type": "Expression" }
+              }
+            },
+            {
+              "name": "Update result",
+              "type": "SetVariable",
+              "dependsOn": [{ "activity": "Update lifecycle", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "variableName": "v_result_state",
+                "value": { "value": "@string(coalesce(activity('Get run status').output.state.result_state, ''))", "type": "Expression" }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Check medallion result",
+        "type": "IfCondition",
+        "dependsOn": [{ "activity": "Poll medallion run", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "expression": { "value": "@equals(variables('v_result_state'), 'SUCCESS')", "type": "Expression" },
+          "ifFalseActivities": [
+            {
+              "name": "Fail on medallion error",
+              "type": "Fail",
+              "dependsOn": [],
+              "typeProperties": {
+                "message": {
+                  "value": "@concat('Medallion job failed. run_id=', variables('v_run_id'), ' result=', variables('v_result_state'))",
+                  "type": "Expression"
+                },
+                "errorCode": "MedallionFailed"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "run_time": { "type": "string", "defaultValue": "" },
+      "hour_offset": { "type": "int", "defaultValue": -2 },
+      "env": { "type": "string", "defaultValue": "dev" }
+    },
+    "variables": {
+      "v_target": { "type": "String" },
+      "v_execution_date": { "type": "String" },
+      "v_file_name": { "type": "String" },
+      "v_folder": { "type": "String" },
+      "v_landing_path": { "type": "String" },
+      "v_run_id": { "type": "String" },
+      "v_life_cycle": { "type": "String" },
+      "v_result_state": { "type": "String" }
+    },
+    "annotations": ["hourly", "ingestion"]
+  }
+}
