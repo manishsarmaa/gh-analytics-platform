@@ -1,0 +1,68 @@
+"""Gold-layer aggregations built from ``silver.events``.
+
+These three tables need only silver.events. The metadata-dependent tables
+(``language_trends_daily``, ``topic_trends_daily``) require repo enrichment and
+are added in Phase 8 once ``silver.repos_scd2`` exists.
+
+Pure functions — each takes silver events and returns an aggregated DataFrame.
+"""
+
+from __future__ import annotations
+
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
+
+
+def _count_when(condition) -> F.Column:
+    return F.sum(F.when(condition, 1).otherwise(0))
+
+
+def event_type_summary_hourly(events: DataFrame) -> DataFrame:
+    """Event volume by (date, hour, event_type)."""
+    return (
+        events.groupBy("event_date", "event_hour", "event_type")
+        .agg(
+            F.count("*").alias("event_count"),
+            F.countDistinct("actor_id").alias("unique_actors"),
+            F.countDistinct("repo_id").alias("unique_repos"),
+        )
+        .withColumn("gold_processed_at", F.current_timestamp())
+    )
+
+
+def hot_repos_hourly(events: DataFrame) -> DataFrame:
+    """Per-repo hourly activity — the source for 'trending repos'."""
+    is_type = lambda t: F.col("event_type") == t  # noqa: E731
+    return (
+        events.groupBy("event_date", "event_hour", "repo_id", "repo_name", "repo_owner")
+        .agg(
+            F.count("*").alias("event_count"),
+            F.countDistinct("actor_id").alias("unique_actors"),
+            _count_when(is_type("WatchEvent")).alias("stars"),
+            _count_when(is_type("ForkEvent")).alias("forks"),
+            _count_when(is_type("PushEvent")).alias("pushes"),
+            _count_when(is_type("PullRequestEvent")).alias("pull_requests"),
+            _count_when(is_type("IssuesEvent")).alias("issues"),
+        )
+        .withColumn("gold_processed_at", F.current_timestamp())
+    )
+
+
+def contributor_activity_daily(events: DataFrame) -> DataFrame:
+    """Per-actor daily activity (bots retained but flagged)."""
+    is_type = lambda t: F.col("event_type") == t  # noqa: E731
+    opened = F.col("event_action") == "opened"
+    return (
+        events.groupBy("event_date", "actor_id", "actor_login", "is_bot")
+        .agg(
+            F.count("*").alias("total_events"),
+            F.countDistinct("repo_id").alias("repos_touched"),
+            _count_when(is_type("PushEvent")).alias("push_events"),
+            _count_when(is_type("PullRequestEvent")).alias("pr_events"),
+            _count_when(is_type("PullRequestEvent") & opened).alias("prs_opened"),
+            _count_when(is_type("IssuesEvent")).alias("issue_events"),
+            _count_when(is_type("IssuesEvent") & opened).alias("issues_opened"),
+            _count_when(is_type("WatchEvent")).alias("stars_given"),
+        )
+        .withColumn("gold_processed_at", F.current_timestamp())
+    )
