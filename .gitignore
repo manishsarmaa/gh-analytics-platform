@@ -31,6 +31,9 @@ azure-credentials.json
 *.tfstate.*
 crash.log
 crash.*.log
+# Saved plan output (binary; regenerated each run)
+tfplan
+*.tfplan
 *.tfvars.local
 override.tf
 override.tf.json
@@ -39,6 +42,8 @@ override.tf.json
 .terraform.lock.hcl
 # Keep example tfvars, ignore real ones with secrets
 !environments/*.tfvars
+# Generated backend config (env-specific, not committed)
+backend.hcl
 
 # ---- Databricks Asset Bundles ----
 .databricks/
