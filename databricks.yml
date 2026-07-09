@@ -50,7 +50,95 @@ targets:
       catalog: gh_analytics_prod
       # NOTE: prod points at the same workspace for the trial; split later.
 
-# resources:
-#   jobs:
-#     streaming_ingestion:   # Phase 10 — continuous Structured Streaming job
-#     daily_optimization:    # Phase 8  — OPTIMIZE + VACUUM
+resources:
+  jobs:
+    # The medallion batch as one serverless multi-task job. ADF triggers this
+    # via the Jobs API (run-now) and monitors it. Task DAG:
+    #   bronze -> silver -> (gold, dq_silver); gold -> dq_gold; bronze -> dq_bronze
+    gh_medallion_batch:
+      name: "[${bundle.target}] gh-medallion-batch"
+      tags:
+        project: gh-analytics-platform
+      queue:
+        enabled: true    # queue instead of failing if a run is already active
+      parameters:
+        - name: env
+          default: dev
+        - name: execution_date
+          default: ""
+        - name: landing_path
+          default: ""
+        - name: source_file
+          default: ""
+      tasks:
+        - task_key: bronze
+          notebook_task:
+            notebook_path: ./src/notebooks/bronze_ingestion.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              execution_date: "{{job.parameters.execution_date}}"
+              landing_path: "{{job.parameters.landing_path}}"
+              source_file: "{{job.parameters.source_file}}"
+          environment_key: default
+
+        - task_key: dq_bronze
+          depends_on: [{ task_key: bronze }]
+          notebook_task:
+            notebook_path: ./src/notebooks/dq_checks.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              layer: bronze
+              execution_date: "{{job.parameters.execution_date}}"
+              run_id: "{{job.run_id}}"
+          environment_key: default
+
+        - task_key: silver
+          depends_on: [{ task_key: bronze }]
+          notebook_task:
+            notebook_path: ./src/notebooks/silver_transformation.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              execution_date: "{{job.parameters.execution_date}}"
+          environment_key: default
+
+        - task_key: dq_silver
+          depends_on: [{ task_key: silver }]
+          notebook_task:
+            notebook_path: ./src/notebooks/dq_checks.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              layer: silver
+              execution_date: "{{job.parameters.execution_date}}"
+              run_id: "{{job.run_id}}"
+          environment_key: default
+
+        - task_key: gold
+          depends_on: [{ task_key: silver }]
+          notebook_task:
+            notebook_path: ./src/notebooks/gold_aggregation.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              execution_date: "{{job.parameters.execution_date}}"
+          environment_key: default
+
+        - task_key: dq_gold
+          depends_on: [{ task_key: gold }]
+          notebook_task:
+            notebook_path: ./src/notebooks/dq_checks.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              layer: gold
+              execution_date: "{{job.parameters.execution_date}}"
+              run_id: "{{job.run_id}}"
+          environment_key: default
+
+      # Serverless environment: our notebooks need pyyaml (not in the base image).
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+            dependencies:
+              - pyyaml==6.0.2
+
+    # streaming_ingestion:  # Phase 10 — continuous Structured Streaming job
+    # daily_optimization:   # Phase 8  — OPTIMIZE + VACUUM
