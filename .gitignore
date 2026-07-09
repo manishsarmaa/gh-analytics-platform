@@ -82,3 +82,5 @@ derby.log
 logs/
 
 .databricks
+
+CLAUDE.md
