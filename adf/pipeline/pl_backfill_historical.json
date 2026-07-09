@@ -1,0 +1,84 @@
+{
+  "name": "pl_backfill_historical",
+  "properties": {
+    "description": "Backfill a datetime window by fanning out pl_hourly_ingestion per hour. Parallelism = ForEach batchCount (3, static; keep <= job max_concurrent_runs). start/end hour bounds keep test runs cheap.",
+    "activities": [
+      {
+        "name": "Set window start",
+        "type": "SetVariable",
+        "dependsOn": [],
+        "typeProperties": {
+          "variableName": "v_window_start",
+          "value": {
+            "value": "@formatDateTime(addHours(concat(pipeline().parameters.start_date, 'T00:00:00Z'), pipeline().parameters.start_hour), 'yyyy-MM-ddTHH:00:00Z')",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Set window end",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Set window start", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "v_window_end",
+          "value": {
+            "value": "@formatDateTime(addHours(concat(pipeline().parameters.end_date, 'T00:00:00Z'), pipeline().parameters.end_hour), 'yyyy-MM-ddTHH:00:00Z')",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Build hours array",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Set window end", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "v_hours",
+          "value": {
+            "value": "@range(0, add(div(sub(ticks(variables('v_window_end')), ticks(variables('v_window_start'))), 36000000000), 1))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "ForEach hour",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "Build hours array", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "items": { "value": "@variables('v_hours')", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 3,
+          "activities": [
+            {
+              "name": "Run hour",
+              "type": "ExecutePipeline",
+              "dependsOn": [],
+              "typeProperties": {
+                "pipeline": { "referenceName": "pl_hourly_ingestion", "type": "PipelineReference" },
+                "waitOnCompletion": true,
+                "parameters": {
+                  "run_time": {
+                    "value": "@formatDateTime(addHours(variables('v_window_start'), item()), 'yyyy-MM-ddTHH:00:00Z')",
+                    "type": "Expression"
+                  },
+                  "env": "dev"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "start_date": { "type": "string", "defaultValue": "2024-01-15" },
+      "end_date": { "type": "string", "defaultValue": "2024-01-15" },
+      "start_hour": { "type": "int", "defaultValue": 0 },
+      "end_hour": { "type": "int", "defaultValue": 2 }
+    },
+    "variables": {
+      "v_window_start": { "type": "String" },
+      "v_window_end": { "type": "String" },
+      "v_hours": { "type": "Array" }
+    },
+    "annotations": ["backfill"]
+  }
+}

@@ -61,6 +61,9 @@ resources:
         project: gh-analytics-platform
       queue:
         enabled: true    # queue instead of failing if a run is already active
+      # Allow parallel backfill runs. Task retries below absorb the Delta
+      # optimistic-concurrency conflicts that same-day parallel runs cause.
+      max_concurrent_runs: 5
       parameters:
         - name: env
           default: dev
@@ -80,6 +83,8 @@ resources:
               landing_path: "{{job.parameters.landing_path}}"
               source_file: "{{job.parameters.source_file}}"
           environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 20000
 
         - task_key: dq_bronze
           depends_on: [{ task_key: bronze }]
@@ -91,6 +96,8 @@ resources:
               execution_date: "{{job.parameters.execution_date}}"
               run_id: "{{job.run_id}}"
           environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 20000
 
         - task_key: silver
           depends_on: [{ task_key: bronze }]
@@ -100,6 +107,8 @@ resources:
               env: "{{job.parameters.env}}"
               execution_date: "{{job.parameters.execution_date}}"
           environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 20000
 
         - task_key: dq_silver
           depends_on: [{ task_key: silver }]
@@ -111,6 +120,8 @@ resources:
               execution_date: "{{job.parameters.execution_date}}"
               run_id: "{{job.run_id}}"
           environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 20000
 
         - task_key: gold
           depends_on: [{ task_key: silver }]
@@ -120,6 +131,8 @@ resources:
               env: "{{job.parameters.env}}"
               execution_date: "{{job.parameters.execution_date}}"
           environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 20000
 
         - task_key: dq_gold
           depends_on: [{ task_key: gold }]
@@ -131,6 +144,8 @@ resources:
               execution_date: "{{job.parameters.execution_date}}"
               run_id: "{{job.run_id}}"
           environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 20000
 
       # Serverless environment: our notebooks need pyyaml (not in the base image).
       environments:
