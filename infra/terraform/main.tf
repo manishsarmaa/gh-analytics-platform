@@ -108,6 +108,7 @@ module "rbac" {
   adf_principal_id                  = module.adf.identity_principal_id
   databricks_connector_principal_id = module.databricks.access_connector_principal_id
   current_user_object_id            = data.azurerm_client_config.current.object_id
+  azure_databricks_sp_object_id     = var.azure_databricks_sp_object_id
 }
 
 # ---------------------------------------------------------------------------

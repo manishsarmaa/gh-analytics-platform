@@ -43,3 +43,12 @@ resource "azurerm_role_assignment" "user_storage" {
   principal_id         = var.current_user_object_id
   principal_type       = "User"
 }
+
+# --- AzureDatabricks first-party SP -> Key Vault (KV-backed secret scope) ---
+resource "azurerm_role_assignment" "databricks_firstparty_keyvault" {
+  count                = var.azure_databricks_sp_object_id != "" ? 1 : 0
+  scope                = var.key_vault_id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = var.azure_databricks_sp_object_id
+  principal_type       = "ServicePrincipal"
+}

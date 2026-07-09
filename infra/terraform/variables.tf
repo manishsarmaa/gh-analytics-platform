@@ -57,6 +57,12 @@ variable "landing_retention_days" {
   default     = 90
 }
 
+variable "azure_databricks_sp_object_id" {
+  description = "Object ID of the first-party 'AzureDatabricks' SP (for KV-backed secret scope). Empty to skip."
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Extra tags merged onto every resource."
   type        = map(string)
