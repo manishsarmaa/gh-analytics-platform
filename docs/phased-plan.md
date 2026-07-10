@@ -9,10 +9,10 @@ generation, ADF Studio authorization) are called out explicitly.
 | 1 | Azure infrastructure (Terraform): RG, ADLS Gen2, Event Hubs, Key Vault, ADF, **Databricks workspace**, RBAC | ✅ Done (applied to dev) |
 | 2 | Databricks setup — Asset Bundle, cluster policy, Unity Catalog | ✅ Done (secret scope = manual UI step) |
 | 3 | Databricks notebooks — bronze / silver / gold / DQ + unit tests | ✅ Done (39 tests green; first live run in Phase 5) |
-| 4 | ADF linked services & datasets (JSON) + Studio authorization | ⬜ |
-| 5 | ADF main hourly pipeline — Copy + notebook activities, end-to-end test | ⬜ |
-| 6 | ADF backfill pipeline — ForEach + parallelism | ⬜ |
-| 7 | Silver enhancements — repo metadata enrichment, SCD Type 2 | ⬜ |
+| 4 | ADF linked services & datasets (JSON) + Studio authorization | ✅ Done (connections tested) |
+| 5 | ADF hourly pipeline — Copy + MSI-triggered serverless medallion, poll | ✅ Done (clean run on real data) |
+| 6 | ADF backfill pipeline — range() ForEach + parallelism + retries | ✅ Done (parallel run OK) |
+| 7 | Silver enhancements — repo metadata enrichment, SCD Type 2 | ✅ Done (SCD2 versioning seen live) |
 | 8 | Gold completion — all aggregates, OPTIMIZE + Z-ORDER | ⬜ |
 | 9 | Data quality framework — GX suites, `ops.dq_results`, ADF integration | ⬜ |
 | 10 | Streaming — Event Hubs producer + Structured Streaming Workflow | ⬜ |
