@@ -18,7 +18,7 @@ generation, ADF Studio authorization) are called out explicitly.
 | 10 | Streaming — Event Hubs producer + Structured Streaming Workflow | ⬜ |
 | 11 | ADF triggers — hourly / daily / 6-hourly | ⬜ |
 | 12 | CI/CD — PR checks + deploy (dev auto) | ✅ Done (green matrix on PR #1) |
-| 13 | Dashboards — Databricks SQL operational + Power BI business | ⬜ |
+| 13 | Dashboards — SQL queries validated on real data; dashboard/Power BI assembly = guided UI | 🟡 Queries done |
 | 14 | Documentation — diagrams, data dictionary, runbook, cost analysis | ⬜ |
 
 ## Key decisions locked
