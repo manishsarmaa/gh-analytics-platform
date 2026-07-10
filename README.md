@@ -1,5 +1,7 @@
 # GitHub Ecosystem Analytics Platform
 
+[![PR Checks](https://github.com/manishsarmaa/gh-analytics-platform/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/manishsarmaa/gh-analytics-platform/actions/workflows/pr-checks.yml)
+
 A production-grade data engineering platform on **Azure** that ingests GitHub
 public event data ([GH Archive](https://data.gharchive.org/) + GitHub REST API),
 processes it through a **medallion lakehouse** (Delta Lake on Azure Databricks),
@@ -10,8 +12,13 @@ a continuous **Databricks Workflow** handles the streaming path. The whole thing
 is defined as code — Terraform for Azure, Databricks Asset Bundles for notebooks
 and jobs, ADF pipelines as Git-tracked JSON — and shipped via GitHub Actions.
 
-> Status: **Phase 0 — Project Bootstrap** (scaffold + tooling). See the phased
-> plan in [`docs/`](docs/) as it fills in.
+> Status: **Batch platform complete** (Phases 0–8, 12) — ingestion, medallion,
+> SCD2 enrichment, gold analytics, maintenance, and CI/CD, all validated on real
+> data. See the [phased plan](docs/phased-plan.md).
+>
+> **Compute note:** batch runs on **Databricks serverless** (the Azure trial caps
+> regional vCPUs), and ADF triggers the serverless jobs via the Jobs API using
+> its managed identity — see [CLAUDE.md](CLAUDE.md) / `memory/`.
 
 ---
 
@@ -70,7 +77,7 @@ Event Hubs → Structured Streaming path runs as a native Databricks job.
 |---|---|
 | Cloud | Azure (trial, `centralindia`) |
 | Storage | ADLS Gen2 (hierarchical namespace) |
-| Compute | Azure Databricks (Premium), job clusters for batch |
+| Compute | Azure Databricks (Premium) — **serverless** jobs for batch |
 | Lakehouse | Delta Lake |
 | Batch orchestration | Azure Data Factory (Git-integrated) |
 | Streaming | Event Hubs + Structured Streaming (Databricks Workflow) |
