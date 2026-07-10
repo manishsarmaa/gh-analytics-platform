@@ -186,5 +186,31 @@ resources:
               - pyyaml==6.0.2
               - requests==2.32.3
 
+    # Daily OPTIMIZE + ZORDER + VACUUM. ADF triggers on a daily cadence (Phase 11).
+    gh_daily_maintenance:
+      name: "[${bundle.target}] gh-daily-maintenance"
+      tags:
+        project: gh-analytics-platform
+      queue:
+        enabled: true
+      parameters:
+        - name: env
+          default: dev
+        - name: vacuum_retention_hours
+          default: "168"
+      tasks:
+        - task_key: maintenance
+          notebook_task:
+            notebook_path: ./src/notebooks/delta_maintenance.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              vacuum_retention_hours: "{{job.parameters.vacuum_retention_hours}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+            dependencies:
+              - pyyaml==6.0.2
+
     # streaming_ingestion:  # Phase 10 — continuous Structured Streaming job
-    # daily_optimization:   # Phase 8  — OPTIMIZE + VACUUM

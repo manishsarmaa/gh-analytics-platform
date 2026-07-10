@@ -1,0 +1,126 @@
+{
+  "name": "pl_daily_optimization",
+  "properties": {
+    "description": "Trigger the serverless gh_daily_maintenance job (OPTIMIZE+ZORDER+VACUUM) via Jobs API (MSI) and wait for it.",
+    "activities": [
+      {
+        "name": "Trigger maintenance job",
+        "type": "WebActivity",
+        "dependsOn": [],
+        "policy": { "timeout": "0.00:10:00", "retry": 1 },
+        "typeProperties": {
+          "url": "https://adb-7405608693609813.13.azuredatabricks.net/api/2.1/jobs/run-now",
+          "method": "POST",
+          "headers": { "Content-Type": "application/json" },
+          "authentication": { "type": "MSI", "resource": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d" },
+          "body": {
+            "value": "@json(concat('{\"job_id\":683550268106263,\"job_parameters\":{\"env\":\"', pipeline().parameters.env, '\",\"vacuum_retention_hours\":\"', string(pipeline().parameters.vacuum_retention_hours), '\"}}'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Set run id",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Trigger maintenance job", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "v_run_id",
+          "value": { "value": "@string(activity('Trigger maintenance job').output.run_id)", "type": "Expression" }
+        }
+      },
+      {
+        "name": "Init lifecycle",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Set run id", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": { "variableName": "v_life_cycle", "value": "PENDING" }
+      },
+      {
+        "name": "Poll maintenance run",
+        "type": "Until",
+        "dependsOn": [{ "activity": "Init lifecycle", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "expression": {
+            "value": "@or(equals(variables('v_life_cycle'), 'TERMINATED'), or(equals(variables('v_life_cycle'), 'INTERNAL_ERROR'), equals(variables('v_life_cycle'), 'SKIPPED')))",
+            "type": "Expression"
+          },
+          "timeout": "0.01:00:00",
+          "activities": [
+            {
+              "name": "Wait 30s",
+              "type": "Wait",
+              "dependsOn": [],
+              "typeProperties": { "waitTimeInSeconds": 30 }
+            },
+            {
+              "name": "Get run status",
+              "type": "WebActivity",
+              "dependsOn": [{ "activity": "Wait 30s", "dependencyConditions": ["Succeeded"] }],
+              "policy": { "timeout": "0.00:05:00", "retry": 2 },
+              "typeProperties": {
+                "url": {
+                  "value": "@concat('https://adb-7405608693609813.13.azuredatabricks.net/api/2.1/jobs/runs/get?run_id=', variables('v_run_id'))",
+                  "type": "Expression"
+                },
+                "method": "GET",
+                "authentication": { "type": "MSI", "resource": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d" }
+              }
+            },
+            {
+              "name": "Update lifecycle",
+              "type": "SetVariable",
+              "dependsOn": [{ "activity": "Get run status", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "variableName": "v_life_cycle",
+                "value": { "value": "@string(activity('Get run status').output.state.life_cycle_state)", "type": "Expression" }
+              }
+            },
+            {
+              "name": "Update result",
+              "type": "SetVariable",
+              "dependsOn": [{ "activity": "Update lifecycle", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "variableName": "v_result_state",
+                "value": {
+                  "value": "@if(contains(activity('Get run status').output.state, 'result_state'), string(activity('Get run status').output.state.result_state), '')",
+                  "type": "Expression"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Check maintenance result",
+        "type": "IfCondition",
+        "dependsOn": [{ "activity": "Poll maintenance run", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "expression": { "value": "@equals(variables('v_result_state'), 'SUCCESS')", "type": "Expression" },
+          "ifFalseActivities": [
+            {
+              "name": "Fail on maintenance error",
+              "type": "Fail",
+              "dependsOn": [],
+              "typeProperties": {
+                "message": {
+                  "value": "@concat('Daily maintenance failed. run_id=', variables('v_run_id'), ' result=', variables('v_result_state'))",
+                  "type": "Expression"
+                },
+                "errorCode": "MaintenanceFailed"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "env": { "type": "string", "defaultValue": "dev" },
+      "vacuum_retention_hours": { "type": "int", "defaultValue": 168 }
+    },
+    "variables": {
+      "v_run_id": { "type": "String" },
+      "v_life_cycle": { "type": "String" },
+      "v_result_state": { "type": "String" }
+    },
+    "annotations": ["maintenance", "daily"]
+  }
+}
