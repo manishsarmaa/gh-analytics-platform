@@ -13,7 +13,7 @@ generation, ADF Studio authorization) are called out explicitly.
 | 5 | ADF hourly pipeline — Copy + MSI-triggered serverless medallion, poll | ✅ Done (clean run on real data) |
 | 6 | ADF backfill pipeline — range() ForEach + parallelism + retries | ✅ Done (parallel run OK) |
 | 7 | Silver enhancements — repo metadata enrichment, SCD Type 2 | ✅ Done (SCD2 versioning seen live) |
-| 8 | Gold completion — all aggregates, OPTIMIZE + Z-ORDER | ⬜ |
+| 8 | Gold completion — language/topic trends, OPTIMIZE + Z-ORDER + VACUUM | ✅ Done (validated on real data) |
 | 9 | Data quality framework — GX suites, `ops.dq_results`, ADF integration | ⬜ |
 | 10 | Streaming — Event Hubs producer + Structured Streaming Workflow | ⬜ |
 | 11 | ADF triggers — hourly / daily / 6-hourly | ⬜ |
