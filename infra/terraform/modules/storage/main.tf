@@ -8,7 +8,7 @@ resource "azurerm_storage_account" "this" {
   account_tier             = "Standard"
   account_replication_type = "LRS" # cheapest; sufficient for a trial/dev lake
   account_kind             = "StorageV2"
-  is_hns_enabled           = true  # hierarchical namespace = ADLS Gen2
+  is_hns_enabled           = true # hierarchical namespace = ADLS Gen2
   min_tls_version          = "TLS1_2"
 
   # NOTE: azurerm 3.x uses this attribute name (emits a harmless deprecation
