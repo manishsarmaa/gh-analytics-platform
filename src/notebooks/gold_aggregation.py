@@ -30,6 +30,8 @@ from transformations.gold import (  # noqa: E402
     contributor_activity_daily,
     event_type_summary_hourly,
     hot_repos_hourly,
+    language_trends_daily,
+    topic_trends_daily,
 )
 from utils.config import load_config  # noqa: E402
 from utils.logging import get_logger  # noqa: E402
@@ -80,5 +82,24 @@ for name, fn in TABLES.items():
     log.info("gold_written", table=name, rows=rows_written, table_total=total)
 
 # COMMAND ----------
-log.info("done", **{"execution_date": execution_date, "tables": list(TABLES)})
+# MAGIC %md ### Metadata-dependent trends (only if silver.repos_scd2 exists)
+
+# COMMAND ----------
+repos_table = cfg.table("silver", "repos_scd2")
+if spark.catalog.tableExists(repos_table):
+    repos = spark.read.table(repos_table)
+    for name, fn in {
+        "language_trends_daily": language_trends_daily,
+        "topic_trends_daily": topic_trends_daily,
+    }.items():
+        df = fn(events, repos)
+        rows_written = df.count()
+        total = write_gold(df, name)
+        metrics[name] = {"written": rows_written, "table_total": total}
+        log.info("gold_written", table=name, rows=rows_written, table_total=total)
+else:
+    log.info("trends_skipped", reason=f"{repos_table} not found — run repo metadata refresh first")
+
+# COMMAND ----------
+log.info("done", **{"execution_date": execution_date, "tables": list(metrics)})
 dbutils.notebook.exit(json.dumps(metrics))

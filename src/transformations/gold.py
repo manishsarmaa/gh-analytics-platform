@@ -1,10 +1,10 @@
-"""Gold-layer aggregations built from ``silver.events``.
+"""Gold-layer aggregations.
 
-These three tables need only silver.events. The metadata-dependent tables
-(``language_trends_daily``, ``topic_trends_daily``) require repo enrichment and
-are added in Phase 8 once ``silver.repos_scd2`` exists.
+Event-only tables take just ``silver.events``. The trend tables also take the
+current ``silver.repos_scd2`` snapshot (repo_id → language / topics) to attach
+metadata.
 
-Pure functions — each takes silver events and returns an aggregated DataFrame.
+Pure functions — each takes DataFrames and returns an aggregated DataFrame.
 """
 
 from __future__ import annotations
@@ -63,6 +63,48 @@ def contributor_activity_daily(events: DataFrame) -> DataFrame:
             _count_when(is_type("IssuesEvent")).alias("issue_events"),
             _count_when(is_type("IssuesEvent") & opened).alias("issues_opened"),
             _count_when(is_type("WatchEvent")).alias("stars_given"),
+        )
+        .withColumn("gold_processed_at", F.current_timestamp())
+    )
+
+
+def _current_repos(repos_scd2: DataFrame) -> DataFrame:
+    """Current-version repo metadata (repo_id, primary_language, topics)."""
+    return repos_scd2.filter(F.col("is_current")).select("repo_id", "primary_language", "topics")
+
+
+def language_trends_daily(events: DataFrame, repos_scd2: DataFrame) -> DataFrame:
+    """Daily activity by repo primary language (events joined to repo metadata)."""
+    repos = _current_repos(repos_scd2)
+    return (
+        events.join(repos, "repo_id", "inner")
+        .filter(F.col("primary_language").isNotNull())
+        .groupBy("event_date", "primary_language")
+        .agg(
+            F.count("*").alias("event_count"),
+            F.countDistinct("repo_id").alias("unique_repos"),
+            F.countDistinct("actor_id").alias("unique_actors"),
+            _count_when(F.col("event_type") == "WatchEvent").alias("stars"),
+        )
+        .withColumn("gold_processed_at", F.current_timestamp())
+    )
+
+
+def topic_trends_daily(events: DataFrame, repos_scd2: DataFrame) -> DataFrame:
+    """Daily activity by repo topic (topics are comma-joined; exploded here)."""
+    repos = _current_repos(repos_scd2).filter(
+        (F.col("topics").isNotNull()) & (F.col("topics") != "")
+    )
+    exploded = repos.withColumn("topic", F.explode(F.split("topics", ","))).select(
+        "repo_id", "topic"
+    )
+    return (
+        events.join(exploded, "repo_id", "inner")
+        .groupBy("event_date", "topic")
+        .agg(
+            F.count("*").alias("event_count"),
+            F.countDistinct("repo_id").alias("unique_repos"),
+            F.countDistinct("actor_id").alias("unique_actors"),
         )
         .withColumn("gold_processed_at", F.current_timestamp())
     )

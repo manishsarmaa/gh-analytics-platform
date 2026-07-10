@@ -11,6 +11,8 @@ from transformations.gold import (
     contributor_activity_daily,
     event_type_summary_hourly,
     hot_repos_hourly,
+    language_trends_daily,
+    topic_trends_daily,
 )
 from transformations.silver import to_silver_events
 
@@ -96,3 +98,52 @@ def test_contributor_repos_touched(spark):
     ]
     row = contributor_activity_daily(_silver(spark, recs)).collect()[0]
     assert row["repos_touched"] == 2
+
+
+def _repos(spark, rows):
+    # rows: (repo_id, primary_language, topics, is_current)
+    return spark.createDataFrame(
+        rows, "repo_id long, primary_language string, topics string, is_current boolean"
+    )
+
+
+def test_language_trends(spark):
+    events = _silver(
+        spark,
+        [
+            _event("1", "PushEvent", repo="a/one", repo_id=1),
+            _event("2", "WatchEvent", repo="a/one", repo_id=1),
+            _event("3", "PushEvent", repo="b/two", repo_id=2),
+        ],
+    )
+    repos = _repos(spark, [(1, "Python", "web,api", True), (2, "Go", "cli", True)])
+    out = {r["primary_language"]: r for r in language_trends_daily(events, repos).collect()}
+    assert out["Python"]["event_count"] == 2
+    assert out["Python"]["stars"] == 1
+    assert out["Go"]["event_count"] == 1
+
+
+def test_language_trends_excludes_non_current(spark):
+    events = _silver(spark, [_event("1", "PushEvent", repo="a/one", repo_id=1)])
+    repos = _repos(spark, [(1, "Python", "x", False)])  # not current -> excluded
+    assert language_trends_daily(events, repos).count() == 0
+
+
+def test_topic_trends_explodes(spark):
+    events = _silver(
+        spark,
+        [
+            _event("1", "PushEvent", repo="a/one", repo_id=1),
+            _event("2", "PushEvent", repo="a/one", repo_id=1),
+        ],
+    )
+    repos = _repos(spark, [(1, "Python", "web,api,ml", True)])
+    out = {r["topic"]: r for r in topic_trends_daily(events, repos).collect()}
+    assert set(out) == {"web", "api", "ml"}
+    assert out["web"]["event_count"] == 2
+
+
+def test_topic_trends_skips_empty_topics(spark):
+    events = _silver(spark, [_event("1", "PushEvent", repo="a/one", repo_id=1)])
+    repos = _repos(spark, [(1, "Python", "", True)])
+    assert topic_trends_daily(events, repos).count() == 0
