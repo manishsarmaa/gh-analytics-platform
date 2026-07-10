@@ -49,9 +49,14 @@ targets = [
     (r["repo_id"], r["repo_name"])
     for r in (
         spark.read.table(silver_events)
+        # Rank by DISTINCT actors, not raw events: spam repos flood many events
+        # from 1-2 accounts (and get deleted -> 404); real repos have many
+        # distinct contributors. Non-bot actors only.
+        .filter(~F.col("is_bot"))
         .groupBy("repo_id", "repo_name")
-        .agg(F.count("*").alias("activity"))
-        .orderBy(F.desc("activity"))
+        .agg(F.countDistinct("actor_id").alias("actors"), F.count("*").alias("activity"))
+        .filter(F.col("actors") >= 3)
+        .orderBy(F.desc("actors"), F.desc("activity"))
         .limit(batch_size)
         .collect()
     )
@@ -62,12 +67,26 @@ log.info("targets_selected", count=len(targets))
 # MAGIC %md ### Fetch from GitHub REST API (rate-limit aware)
 
 # COMMAND ----------
+from collections import Counter  # noqa: E402
+
 SESSION = requests.Session()
 SESSION.headers.update({"Authorization": f"Bearer {GITHUB_PAT}", "Accept": "application/vnd.github+json"})
 
+# Operational telemetry (surfaced in the notebook exit; serverless has no stdout).
+_statuses: Counter = Counter()
+_sample_err = None
+
 
 def fetch_repo(repo_id: int, repo_name: str) -> dict | None:
-    resp = SESSION.get(f"https://api.github.com/repos/{repo_name}", timeout=30)
+    global _sample_err
+    try:
+        resp = SESSION.get(f"https://api.github.com/repos/{repo_name}", timeout=30)
+    except Exception as e:  # network/egress issue surfaces here
+        _statuses["EXC"] += 1
+        _sample_err = _sample_err or f"EXC {type(e).__name__}: {str(e)[:150]}"
+        return None
+
+    _statuses[resp.status_code] += 1
     if resp.status_code == 200:
         d = resp.json()
         return {
@@ -83,14 +102,14 @@ def fetch_repo(repo_id: int, repo_name: str) -> dict | None:
             "size_kb": d.get("size"),
         }
     if resp.status_code == 404:
-        return None  # repo deleted/renamed
+        return None  # repo deleted/renamed since the event
     if resp.status_code in (403, 429) and resp.headers.get("X-RateLimit-Remaining") == "0":
         reset = int(resp.headers.get("X-RateLimit-Reset", time.time() + 60))
         wait = max(0, reset - time.time()) + 1
         log.info("rate_limited", sleep_s=int(wait))
         time.sleep(wait)
         return fetch_repo(repo_id, repo_name)
-    log.info("fetch_skipped", repo=repo_name, status=resp.status_code)
+    _sample_err = _sample_err or f"{resp.status_code}: {resp.text[:150]}"
     return None
 
 
@@ -100,6 +119,8 @@ for rid, rname in targets:
     if rec:
         records.append(rec)
     time.sleep(0.05)  # gentle pacing
+
+log.info("fetch_diag", targets=len(targets), statuses=dict(_statuses), sample_err=_sample_err)
 
 log.info("fetched", ok=len(records), attempted=len(targets))
 
@@ -134,6 +155,10 @@ metrics = {
     "rows_total": total.count(),
     "current": total.filter("is_current").count(),
     "historical": total.filter("not is_current").count(),
+    "fetched": len(records),
+    "targets": len(targets),
+    "statuses": dict(_statuses),
+    "sample_err": _sample_err,
 }
 log.info("done", **metrics)
 dbutils.notebook.exit(str(metrics))

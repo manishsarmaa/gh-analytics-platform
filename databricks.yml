@@ -155,5 +155,36 @@ resources:
             dependencies:
               - pyyaml==6.0.2
 
+    # Repo-metadata enrichment (GitHub API -> silver.repos_scd2). ADF triggers
+    # this on a 6-hourly cadence (Phase 11).
+    gh_repo_metadata_refresh:
+      name: "[${bundle.target}] gh-repo-metadata-refresh"
+      tags:
+        project: gh-analytics-platform
+      queue:
+        enabled: true
+      parameters:
+        - name: env
+          default: dev
+        - name: batch_size
+          default: "100"
+      tasks:
+        - task_key: fetch_metadata
+          notebook_task:
+            notebook_path: ./src/notebooks/fetch_repo_metadata.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              batch_size: "{{job.parameters.batch_size}}"
+          environment_key: default
+          max_retries: 1
+          min_retry_interval_millis: 20000
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+            dependencies:
+              - pyyaml==6.0.2
+              - requests==2.32.3
+
     # streaming_ingestion:  # Phase 10 — continuous Structured Streaming job
     # daily_optimization:   # Phase 8  — OPTIMIZE + VACUUM
