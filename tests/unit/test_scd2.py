@@ -37,7 +37,6 @@ def test_changed_attribute_creates_new_version(spark):
     v1 = scd2_upsert(None, _snap(spark, [(1, "a/one", "Python", 10)]), "repo_id", TRACKED, T1)
     # stars changed 10 -> 20
     v2 = scd2_upsert(v1, _snap(spark, [(1, "a/one", "Python", 20)]), "repo_id", TRACKED, T2)
-    rows = {(_r["is_current"], _r["stars"]): _r for _r in v2.collect()}
     assert v2.count() == 2
     assert v2.filter("is_current").count() == 1
     # the current row has the new value; the closed row has the old value + valid_to set
