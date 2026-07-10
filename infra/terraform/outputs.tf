@@ -57,11 +57,11 @@ output "data_factory_identity_principal_id" {
 output "config_updates_needed" {
   description = "Copy these into configs/<env>.yaml."
   value = {
-    "storage.account_name"      = module.storage.name
-    "keyvault.name"             = module.keyvault.name
-    "eventhub.namespace"        = module.eventhub.namespace_name
-    "adf.factory_name"          = module.adf.name
-    "databricks.workspace_url"  = module.databricks.workspace_url
-    "azure.resource_group"      = azurerm_resource_group.main.name
+    "storage.account_name"     = module.storage.name
+    "keyvault.name"            = module.keyvault.name
+    "eventhub.namespace"       = module.eventhub.namespace_name
+    "adf.factory_name"         = module.adf.name
+    "databricks.workspace_url" = module.databricks.workspace_url
+    "azure.resource_group"     = azurerm_resource_group.main.name
   }
 }
