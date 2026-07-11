@@ -28,13 +28,16 @@ views — apply ordering/limits in the tile. Recreate with `CREATE OR REPLACE`.
 | `vw_batch_vs_stream` | batch vs streaming split |
 | `vw_repo_versions` | SCD2 current vs historical |
 
-## A. Databricks SQL operational dashboard
+## A. Databricks SQL (Lakeview) dashboard — built
 
-1. **SQL → Dashboards → Create dashboard** (Lakeview). For each tile, add a
-   dataset like `SELECT * FROM gh_analytics_dev.gold.vw_trending_repos
-   ORDER BY contributors DESC LIMIT 20` and pick the viz from the table above.
-   (Or create saved queries from
-   [`operational_queries.sql`](databricks_sql/operational_queries.sql) first.)
+A Lakeview dashboard **"GH Ecosystem Analytics"** is created over the views
+(trending repos + DQ health tables, language + hourly bars). Its serialized
+definition is version-controlled at
+[`databricks_sql/gh_overview.lvdash.json`](databricks_sql/gh_overview.lvdash.json)
+— recreate with `databricks.sdk` `w.lakeview.create(...)` or import in Studio.
+
+Extend it in **SQL → Dashboards**: add tiles bound to the other `vw_*` views
+(topics, contributors, bot/human, batch-vs-stream, SCD2) using the viz map above.
 2. **SQL → Dashboards → Create dashboard**. Add one visualization per query:
    | Query | Viz |
    |---|---|

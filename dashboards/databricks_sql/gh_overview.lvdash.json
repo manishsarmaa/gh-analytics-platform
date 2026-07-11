@@ -1,0 +1,256 @@
+{
+  "datasets": [
+    {
+      "name": "repos",
+      "displayName": "Trending",
+      "queryLines": [
+        "SELECT repo_name, contributors, stars, forks FROM gh_analytics_dev.gold.vw_trending_repos ORDER BY contributors DESC LIMIT 20"
+      ]
+    },
+    {
+      "name": "dq",
+      "displayName": "DQ",
+      "queryLines": [
+        "SELECT layer, checks, pass_pct FROM gh_analytics_dev.gold.vw_dq_health ORDER BY layer"
+      ]
+    },
+    {
+      "name": "lang",
+      "displayName": "Lang",
+      "queryLines": [
+        "SELECT primary_language, events FROM gh_analytics_dev.gold.vw_language_trends ORDER BY events DESC LIMIT 12"
+      ]
+    },
+    {
+      "name": "hour",
+      "displayName": "Hourly",
+      "queryLines": [
+        "SELECT event_hour, events FROM gh_analytics_dev.gold.vw_hourly_activity ORDER BY event_hour"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "GH Ecosystem Analytics",
+      "layout": [
+        {
+          "widget": {
+            "name": "t_repos",
+            "queries": [
+              {
+                "name": "q",
+                "query": {
+                  "datasetName": "repos",
+                  "fields": [
+                    {
+                      "name": "repo_name",
+                      "expression": "`repo_name`"
+                    },
+                    {
+                      "name": "contributors",
+                      "expression": "`contributors`"
+                    },
+                    {
+                      "name": "stars",
+                      "expression": "`stars`"
+                    },
+                    {
+                      "name": "forks",
+                      "expression": "`forks`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "repo_name",
+                    "displayName": "repo_name"
+                  },
+                  {
+                    "fieldName": "contributors",
+                    "displayName": "contributors"
+                  },
+                  {
+                    "fieldName": "stars",
+                    "displayName": "stars"
+                  },
+                  {
+                    "fieldName": "forks",
+                    "displayName": "forks"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "t_dq",
+            "queries": [
+              {
+                "name": "q",
+                "query": {
+                  "datasetName": "dq",
+                  "fields": [
+                    {
+                      "name": "layer",
+                      "expression": "`layer`"
+                    },
+                    {
+                      "name": "checks",
+                      "expression": "`checks`"
+                    },
+                    {
+                      "name": "pass_pct",
+                      "expression": "`pass_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "layer",
+                    "displayName": "layer"
+                  },
+                  {
+                    "fieldName": "checks",
+                    "displayName": "checks"
+                  },
+                  {
+                    "fieldName": "pass_pct",
+                    "displayName": "pass_pct"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "b_lang",
+            "queries": [
+              {
+                "name": "q",
+                "query": {
+                  "datasetName": "lang",
+                  "fields": [
+                    {
+                      "name": "primary_language",
+                      "expression": "`primary_language`"
+                    },
+                    {
+                      "name": "events",
+                      "expression": "`events`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "primary_language",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "primary_language"
+                },
+                "y": {
+                  "fieldName": "events",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "events"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "b_hour",
+            "queries": [
+              {
+                "name": "q",
+                "query": {
+                  "datasetName": "hour",
+                  "fields": [
+                    {
+                      "name": "event_hour",
+                      "expression": "`event_hour`"
+                    },
+                    {
+                      "name": "events",
+                      "expression": "`events`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "event_hour",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "event_hour"
+                },
+                "y": {
+                  "fieldName": "events",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "events"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 8,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ]
+}
