@@ -87,6 +87,23 @@ if execution_date and "event_date" in df.columns:
     df = df.filter(F.col("event_date") == F.to_date(F.lit(execution_date)))
 
 results = suite_for(layer, df)
+
+# Great Expectations suite (runs only where great-expectations is installed —
+# the DQ tasks get it via the job's `dq` environment; graceful elsewhere).
+try:
+    from dq.expectations.suites import suite_for as gx_suite_for
+    from dq.gx_runner import run_suite
+
+    # GX runs on a bounded pandas sample (its Spark backend persists internally,
+    # which serverless rejects). The custom Spark checks above are the full-table
+    # gate; GX adds declarative expectation coverage on the sample.
+    sample_pdf = df.limit(20000).toPandas()
+    gx_results = run_suite(sample_pdf, gx_suite_for(layer))
+    results = results + gx_results
+    log.info("gx_ran", checks=len(gx_results), sample_rows=len(sample_pdf))
+except ImportError:
+    log.info("gx_skipped", reason="great-expectations not installed")
+
 for r in results:
     log.info("check", name=r.check_name, passed=r.passed, observed=r.observed, severity=r.severity)
 
