@@ -4,8 +4,10 @@ location           = "centralindia"
 prefix             = "ghanalytics"
 notification_email = "dbdaproject787@gmail.com"
 
-# Cheapest streaming tier for the trial. $Default consumer group only.
-eventhub_sku             = "Basic"
+# Standard tier enables the Kafka endpoint (required for Spark Structured
+# Streaming on serverless) + a dedicated "streaming" consumer group.
+# (Basic has no Kafka endpoint; the serverless consumer can't load the AMQP JAR.)
+eventhub_sku             = "Standard"
 eventhub_partition_count = 2
 
 landing_retention_days = 90

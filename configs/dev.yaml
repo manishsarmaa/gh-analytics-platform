@@ -43,7 +43,7 @@ databricks:
 eventhub:
   namespace: "ghan-dev-ehns-a5k8k"
   hub_name: "gh-events"
-  consumer_group: "$Default"                # Basic SKU only supports $Default
+  consumer_group: "streaming"               # Standard tier — dedicated CG for the stream
 
 keyvault:
   name: "ghan-dev-kv-a5k8k"

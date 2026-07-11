@@ -213,4 +213,29 @@ resources:
             dependencies:
               - pyyaml==6.0.2
 
-    # streaming_ingestion:  # Phase 10 — continuous Structured Streaming job
+    # Streaming: Event Hubs (Kafka endpoint) -> bronze.gh_events_stream -> silver.
+    # A Databricks Workflow (NOT ADF). availableNow processes the backlog then
+    # stops (cheap demo); switch trigger_mode=continuous30s for a live stream.
+    gh_streaming_ingestion:
+      name: "[${bundle.target}] gh-streaming-ingestion"
+      tags:
+        project: gh-analytics-platform
+      parameters:
+        - name: env
+          default: dev
+        - name: trigger_mode
+          default: availableNow
+      tasks:
+        - task_key: stream
+          notebook_task:
+            notebook_path: ./src/notebooks/streaming_ingestion.py
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              trigger_mode: "{{job.parameters.trigger_mode}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - pyyaml==6.0.2
