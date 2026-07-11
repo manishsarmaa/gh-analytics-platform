@@ -1,0 +1,24 @@
+{
+  "name": "tr_hourly",
+  "properties": {
+    "description": "Hourly at :15 — GH Archive publish lag handled by pl_hourly_ingestion hour_offset. DISABLED by default (runtimeState=Stopped).",
+    "annotations": ["hourly"],
+    "runtimeState": "Stopped",
+    "pipelines": [
+      {
+        "pipelineReference": { "referenceName": "pl_hourly_ingestion", "type": "PipelineReference" },
+        "parameters": {}
+      }
+    ],
+    "type": "ScheduleTrigger",
+    "typeProperties": {
+      "recurrence": {
+        "frequency": "Hour",
+        "interval": 1,
+        "startTime": "2024-01-01T00:15:00Z",
+        "timeZone": "UTC",
+        "schedule": { "minutes": [15] }
+      }
+    }
+  }
+}

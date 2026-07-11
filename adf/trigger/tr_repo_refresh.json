@@ -1,0 +1,23 @@
+{
+  "name": "tr_repo_refresh",
+  "properties": {
+    "description": "Every 6 hours — GitHub repo metadata enrichment (SCD2). DISABLED by default.",
+    "annotations": ["enrichment"],
+    "runtimeState": "Stopped",
+    "pipelines": [
+      {
+        "pipelineReference": { "referenceName": "pl_repo_metadata_refresh", "type": "PipelineReference" },
+        "parameters": {}
+      }
+    ],
+    "type": "ScheduleTrigger",
+    "typeProperties": {
+      "recurrence": {
+        "frequency": "Hour",
+        "interval": 6,
+        "startTime": "2024-01-01T00:00:00Z",
+        "timeZone": "UTC"
+      }
+    }
+  }
+}
