@@ -12,9 +12,11 @@ a continuous **Databricks Workflow** handles the streaming path. The whole thing
 is defined as code — Terraform for Azure, Databricks Asset Bundles for notebooks
 and jobs, ADF pipelines as Git-tracked JSON — and shipped via GitHub Actions.
 
-> Status: **Batch platform complete** (Phases 0–8, 12) — ingestion, medallion,
-> SCD2 enrichment, gold analytics, maintenance, and CI/CD, all validated on real
-> data. See the [phased plan](docs/phased-plan.md).
+> Status: **Complete** — all 14 phases delivered and validated on real data:
+> batch + streaming ingestion, medallion, SCD2 enrichment, gold analytics,
+> maintenance, two-tier DQ, CI/CD, dashboards, and docs. See the
+> [phased plan](docs/phased-plan.md) · [architecture](docs/architecture.md) ·
+> [runbook](docs/runbook.md).
 >
 > **Compute note:** batch runs on **Databricks serverless** (the Azure trial caps
 > regional vCPUs), and ADF triggers the serverless jobs via the Jobs API using
