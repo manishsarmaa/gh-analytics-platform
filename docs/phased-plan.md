@@ -15,7 +15,7 @@ generation, ADF Studio authorization) are called out explicitly.
 | 7 | Silver enhancements — repo metadata enrichment, SCD Type 2 | ✅ Done (SCD2 versioning seen live) |
 | 8 | Gold completion — language/topic trends, OPTIMIZE + Z-ORDER + VACUUM | ✅ Done (validated on real data) |
 | 9 | Data quality framework — GX suites (pandas sample) + custom full-table gate → `ops.dq_results` | ✅ Done (validated on serverless) |
-| 10 | Streaming — Event Hubs producer + Structured Streaming Workflow | ⬜ |
+| 10 | Streaming — EH producer + Structured Streaming (Kafka/serverless) → bronze_stream → silver | ✅ Done (150 events streamed end-to-end) |
 | 11 | ADF triggers — hourly / daily / 6-hourly | ⬜ |
 | 12 | CI/CD — PR checks + deploy (dev auto) | ✅ Done (green matrix on PR #1) |
 | 13 | Dashboards — SQL queries validated on real data; dashboard/Power BI assembly = guided UI | 🟡 Queries done |
