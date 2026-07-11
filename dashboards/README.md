@@ -9,12 +9,32 @@ Both read `gh_analytics_dev.gold.*` (+ `ops.dq_results`, `silver.repos_scd2`) vi
 the **Serverless Starter Warehouse**. Queries are validated on real data (see
 `databricks_sql/operational_queries.sql`).
 
+## Serving views
+
+[`databricks_sql/views.sql`](databricks_sql/views.sql) defines 10 `vw_*` views in
+`gh_analytics_dev.gold` (created and validated). Dashboards/BI query these named
+views — apply ordering/limits in the tile. Recreate with `CREATE OR REPLACE`.
+
+| View | Tile |
+|---|---|
+| `vw_dq_health` | DQ pass rate by layer |
+| `vw_event_type_distribution` | event-type pie/bar |
+| `vw_trending_repos` | trending repos table |
+| `vw_language_trends` | language bar |
+| `vw_topic_trends` | topic bar |
+| `vw_top_contributors` | contributor leaderboard (spam-resistant) |
+| `vw_bot_vs_human` | bot/human donut |
+| `vw_hourly_activity` | activity-by-hour line |
+| `vw_batch_vs_stream` | batch vs streaming split |
+| `vw_repo_versions` | SCD2 current vs historical |
+
 ## A. Databricks SQL operational dashboard
 
-1. In the workspace: **SQL → Queries → Create query**. Paste each query from
-   [`databricks_sql/operational_queries.sql`](databricks_sql/operational_queries.sql),
-   run on the **Serverless Starter Warehouse**, and **Save** (name it after the
-   `-- N.` comment).
+1. **SQL → Dashboards → Create dashboard** (Lakeview). For each tile, add a
+   dataset like `SELECT * FROM gh_analytics_dev.gold.vw_trending_repos
+   ORDER BY contributors DESC LIMIT 20` and pick the viz from the table above.
+   (Or create saved queries from
+   [`operational_queries.sql`](databricks_sql/operational_queries.sql) first.)
 2. **SQL → Dashboards → Create dashboard**. Add one visualization per query:
    | Query | Viz |
    |---|---|
