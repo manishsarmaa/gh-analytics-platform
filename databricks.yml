@@ -100,7 +100,7 @@ resources:
           min_retry_interval_millis: 20000
 
         - task_key: silver
-          depends_on: [{ task_key: bronze }]
+          depends_on: [{ task_key: dq_bronze }]   # DQ gate: bad bronze stops here
           notebook_task:
             notebook_path: ./src/notebooks/silver_transformation.py
             base_parameters:
@@ -124,7 +124,7 @@ resources:
           min_retry_interval_millis: 20000
 
         - task_key: gold
-          depends_on: [{ task_key: silver }]
+          depends_on: [{ task_key: dq_silver }]   # DQ gate: bad silver stops here
           notebook_task:
             notebook_path: ./src/notebooks/gold_aggregation.py
             base_parameters:
